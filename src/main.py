@@ -5,6 +5,7 @@ from tqdm import tqdm
 from copy import copy
 import logging
 from ToG import *
+import random
 
 logging.basicConfig(level=logging.INFO) 
 logger = logging.getLogger(__name__) 
@@ -43,21 +44,17 @@ def main():
 
     # load data
     if args.dataset == "CWQ":
-        data = CWQ(args.data_path)
+        #data = CWQ(args.data_path)
+        raise NotImplemented
     elif args.dataset == "WebQSP":
-        data = WebQSP(args.data_path)
+        raise NotImplemented
+        #data = WebQSP(args.data_path)
     elif args.dataset == "QALD-10":
-        data = QALD(args.data_path)
+        with open('/home/shkim/ToG-implement/data/qald_10-en.json',encoding='utf-8') as f:
+            data = json.load(f) 
     else:
         raise NotImplementedError
-    data.format(fewshot=args.fewshot)
-    data = data.dataset
-    if args.shuffle:
-        data = data.shuffle()
-    if args.sample != -1:
-        samples = min(len(data), args.sample)
-        data = data.select(range(samples))
-   
+
     # generation method
     if args.method == "IO":
         model = IO_prompt(args)
@@ -67,22 +64,27 @@ def main():
         model = ToG(args)
     else:
         raise NotImplementedError
-
+    
+    if args.sample != -1:
+            samples = min(len(data), args.sample)
+            data = random.sample(data, samples)
+            
     logger.info("start inference")
     for i in tqdm(range(len(data))):
         batch = data[i]
         # measure total time
         # inference_start_time = time.perf_counter()
-        pred = model.inference(batch["question"], batch["demo"], batch["case"])
+        pred = model.inference(batch["question"])
         # inference_end_time = time.perf_counter()
         #total_time = (inference_end_time - inference_start_time)
-        pred = pred.strip()
-        ret = {
-            "qid": batch["qid"], 
-            "prediction": pred,
-            #"tot_time": total_time,
-        }
-        output_file.write(json.dumps(ret)+"\n")
+        #pred = pred.strip()
+        # ret = {
+        #     # "qid": batch["qid"], 
+        #     "prediction": pred,
+        #     #"tot_time": total_time,
+        # }
+        # output_file.write(json.dumps(ret)+"\n")
+        print("pred: ", pred)
     
 if __name__ == "__main__":
     main()
