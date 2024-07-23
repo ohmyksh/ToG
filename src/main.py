@@ -52,6 +52,7 @@ def main():
     elif args.dataset == "QALD-10":
         with open('/home/shkim/ToG-implement/data/qald_10-en.json',encoding='utf-8') as f:
             data = json.load(f) 
+        topic_entity = "qid_topic_entity"
     else:
         raise NotImplementedError
 
@@ -69,21 +70,22 @@ def main():
             samples = min(len(data), args.sample)
             data = random.sample(data, samples)
             
+            
     logger.info("start inference")
     for i in tqdm(range(len(data))):
         batch = data[i]
         # measure total time
         # inference_start_time = time.perf_counter()
-        pred = model.inference(batch["question"])
+        pred = model.inference(batch["question"], batch[topic_entity], args.generate_max_length)
         # inference_end_time = time.perf_counter()
         #total_time = (inference_end_time - inference_start_time)
-        #pred = pred.strip()
-        # ret = {
-        #     # "qid": batch["qid"], 
-        #     "prediction": pred,
-        #     #"tot_time": total_time,
-        # }
-        # output_file.write(json.dumps(ret)+"\n")
+        pred = pred.strip()
+        ret = {
+            "question": batch["question"],
+            "prediction": pred,
+            #"tot_time": total_time,
+        }
+        output_file.write(json.dumps(ret)+"\n")
         print("pred: ", pred)
     
 if __name__ == "__main__":

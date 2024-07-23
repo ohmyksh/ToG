@@ -7,6 +7,9 @@ import time
 logging.basicConfig(level=logging.INFO) 
 logger = logging.getLogger(__name__)
 
+reasoning_temperature=0
+exploration_temperature = 0.4
+
 class BasicGenerator:
     def __init__(self, args):
         model_info = args.model_name_or_path
@@ -26,13 +29,14 @@ class BasicGenerator:
             self.space_token = "_"
         else:
             self.space_token = self.tokenizer.tokenize(' ')[0]
-    def generate(self, input_text, max_length):
+    def generate(self, input_text, max_length, temperature):
         input_ids = self.tokenizer.encode(input_text, return_tensors="pt")
         input_ids = input_ids.to(self.model.device)
         input_length = input_ids.shape[1]
         outputs = self.model.generate(
                 input_ids = input_ids, 
-                max_new_tokens = max_length
+                max_new_tokens = max_length,
+                temperature = temperature
             )
         generated_tokens = outputs[:, input_length:]
         text = self.tokenizer.decode(generated_tokens[0], skip_special_tokens=True)
@@ -61,10 +65,10 @@ class IO_prompt(BasicGenerator):
         Q: What drug did the actor who portrayed the character Urethane Wheels Guy overdosed on?
         A: Heroin.
         """
-    def inference(self, question):
+    def inference(self, question, topic_entity=None, max_length=256):
         # prompt
         prompt = self.io_prompt + "\nQ: " + question + "\nA: "
-        text = self.generate(prompt) #generate max length
+        text = self.generate(prompt, max_length, reasoning_temperature) #generate max length
         return text
     
     
@@ -91,9 +95,9 @@ class CoT_prompt(BasicGenerator):
         A: First, Mitchell Lee Hedberg portrayed character Urethane Wheels Guy. Second, Mitchell Lee Hedberg overdose Heroin. The answer is Heroin.
         """
         
-    def inference(self, question, demo, case):
+    def inference(self, question, topic_entity=None, max_length=256):
         prompt = self.cot_prompt + "\nQ: " + question + "\nA: "
-        text = self.generate(prompt, 256)
+        text = self.generate(prompt, 256, reasoning_temperature)
         return text
     
     
@@ -101,13 +105,16 @@ class ToG(BasicGenerator):
     def __init__(self, args):
         super().__init__(args)
         self.topic_entites = []
+        self.generate_max_length = args.generate_max_length
+        self.N = args.beamsearch_width
+        self.D_max = args.beamsearch_depth
     
     def initializer(self, args, question, N):
         # extract top-N topic entites
         # convert entities to wikidata ids. 
         prompt = f"""Please extract up to {N} topic entities (separated by semicolon) in question.\n
         question: {question}"""
-        # extracted_topic_entities = self.generate(prompt)
+        extracted_topic_entities = self.generate(prompt, self.generate_max_length, exploration_temperature)
         extracted_topic_entities = "Canberra; Australia; majority party"
         extracted_topic_entities = [entity.strip() for entity in extracted_topic_entities.split(';')]
         if args.knowledge_base == "wikidata":
@@ -153,8 +160,10 @@ class ToG(BasicGenerator):
         explored_relation_chains = "" # reasoning path
         prompt += "\nTopic Entity, with relations chains, and their candidate entities: " + explored_relation_chains
         prompt += "\nA:"
-        answer = self.generate(prompt)
+        answer = self.generate(prompt, self.generate_max_length, reasoning_temperature)
+        
         # extract answer???
+        
         return False
     
     def final_ans_generator(self, question, reasoning_path):
@@ -166,20 +175,19 @@ class ToG(BasicGenerator):
         knowledge_triple = []
         prompt += "\nKnowledge triples: " 
         prompt += "\nA: " 
-        answer = self.generate(prompt)
+        answer = self.generate(prompt, self.generate_max_length, reasoning_temperature)
         return answer
     
-    def inference(self, args, question, demo, case, d_max, N):
+    def inference(self, args, question, topic_entity):
         text = ""
-        E = self.initializer(question, N)
+        E = self.initializer(question, self.N)
         reasoning_path = []
         depth= 0
-        while depth <= d_max:
+        while depth <= self.D_max:
             R_cand = self.retriever(args.knowledge_base, question, E, "relation", reasoning_path)
             R = self.prune(question, R_cand, "relation")
             E_cand = self.retriever(args.knowledge_base, question, R, "entity", reasoning_path)
             E = self.prune(question, E_cand, "entity")
-            
             if self.reasoning(question, reasoning_path):
                 break
             

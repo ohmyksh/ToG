@@ -1,10 +1,12 @@
 from typing import Dict, List, Callable, Tuple, Union, Callable
 import logging
 import os
-import json
-import re
 from datasets import Dataset
 from tqdm import tqdm
+from SPARQLWrapper import SPARQLWrapper, JSON
+import numpy as np
+import re
+import json
 
 
 logging.basicConfig(level=logging.INFO) 
@@ -65,7 +67,6 @@ class BaseDataset:
                 continue
             prediction_tokens = normalized_prediction.split()
             ground_truth_tokens = normalized_ground_truth.split()
-            common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
             num_same = sum(common.values())
             if num_same == 0:
                 continue
@@ -126,39 +127,12 @@ class WebQSP(BaseDataset):
         dataset = []
 
 class QALD(BaseDataset):
-    def __init__(self, data_path: str):
-        logger.info(f"Loading QALD-10 from {data_path}")
+    def __init__(self):
+        logger.info(f"Loading QALD-10 from data path")
         dataset = []
-        with open(os.path.join(data_path, "strategyqa_train.json"), "r") as fin:
-            dataset_1 = json.load(fin)
-        with open(os.path.join(data_path, "strategyqa_train_paragraphs.json"), "r") as fin:
-            dataset_2 = json.load(fin)
-        for data in tqdm(dataset_1):
-            example = {
-                "qid": data["qid"], 
-                "question": data["question"], 
-                "cot": " ".join(data["facts"]), 
-                "answer": "yes" if data["answer"] == True else "no", 
-            }
-            title = []
-            ctxs = []
-            for evi in data["evidence"][0]:
-                if type(evi) == list:
-                    for t in evi:
-                        if type(t) == list:
-                            title.extend(t)
-                        else:
-                            title.append(t)
-                else:
-                    title.append(evi)
-            for tl in title:
-                if tl == "operation" or tl == "no_evidence":
-                    continue
-                if tl in dataset_2:
-                    ctxs.append(dataset_2[tl]["content"])
-            example["ctxs"] = " ".join(ctxs)
-            dataset.append(example)
-        self.dataset = Dataset.from_list(dataset)
+        with open(os.path.join("/home/shkim/ToG-implement/data/qald_10-en.json"), "r") as fin:
+            dataset = json.load(fin)
+        
 
     def get_real_prediction(self, pred):
         answer_prompts = ["the answer is"]
