@@ -90,7 +90,7 @@ class WikidataRetriever(SPARQLQueryDispatcher):
             tail_entity_label = result["tailEntityLabel"]["value"]
             print(f"{tail_entity_label} (URI: {tail_entity})")
     
-    def entity_set_retriever(self, candidate_relation_set, reasoning_path):
+    def entity_set_retriever(self, candidate_relation_set):
         for entity_relation_pairs in candidate_relation_set:
             entity = entity_relation_pairs['entity']
             for relation in entity_relation_pairs['relations']:
@@ -128,20 +128,27 @@ class WikidataRetriever(SPARQLQueryDispatcher):
         results.extend(results_1['results']['bindings'])
         results.extend(results_2['results']['bindings'])
         
+        unique_relations = set()
         for result in results:
             relation = result["relation"]["value"]
+            # print("\n\n\nraw relation: ", relation)
             relation_id = relation.split('/')[-1]
             relation_label = self.get_property_label(relation)
-            print({"id": relation_id, "label": relation_label})
-            relation_info = {"id": relation_id, "label": relation_label}
-            relations.append(relation_info)
+            # print({"id": relation_id, "label": relation_label})
+            if relation_label != "Wikidata property example":
+                relation_info = {'id': relation_id, 'name': relation_label}
+                if (relation_id, relation_label) not in unique_relations:
+                    unique_relations.add((relation_id, relation_label))
+                    relations.append(relation_info)
         return relations
  
-    def relation_set_retriever(self, entity_set, reasoning_path):
+    def relation_set_retriever(self, entity_set):
         all_relations = []
         for entity in entity_set:
-            print(f"\n--- relation_retriever for {entity} ---\n")
-            relations = self.relation_retriever(entity)
+            # print(f"\n--- relation_retriever for {entity} ---\n")
+            print("--------relation_set_retriever function_________")
+            print("entity id: ", entity['id'], )
+            relations = self.relation_retriever(entity['id'])
             all_relations.append({"entity": entity, "relations": relations})
         return all_relations
 

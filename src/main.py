@@ -61,7 +61,7 @@ def main():
         model = IO_prompt(args)
     elif args.method == "CoT":
         model = CoT_prompt(args)
-    elif args.method == "token":
+    elif args.method == "ToG":
         model = ToG(args)
     else:
         raise NotImplementedError
@@ -76,7 +76,7 @@ def main():
         batch = data[i]
         # measure total time
         # inference_start_time = time.perf_counter()
-        pred = model.inference(batch["question"], batch[topic_entity], args.generate_max_length)
+        pred = model.inference(batch["question"], batch[topic_entity])
         # inference_end_time = time.perf_counter()
         #total_time = (inference_end_time - inference_start_time)
         pred = pred.strip()

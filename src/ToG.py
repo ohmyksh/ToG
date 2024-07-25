@@ -1,13 +1,15 @@
 import torch
 import logging
 from retriever import * 
+from prompt_list import *
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 import time
+import re
 
 logging.basicConfig(level=logging.INFO) 
 logger = logging.getLogger(__name__)
 
-reasoning_temperature=0
+reasoning_temperature=0.0
 exploration_temperature = 0.4
 
 class BasicGenerator:
@@ -30,6 +32,7 @@ class BasicGenerator:
         else:
             self.space_token = self.tokenizer.tokenize(' ')[0]
     def generate(self, input_text, max_length, temperature):
+        print("----------llm generate----------")
         input_ids = self.tokenizer.encode(input_text, return_tensors="pt")
         input_ids = input_ids.to(self.model.device)
         input_length = input_ids.shape[1]
@@ -46,25 +49,7 @@ class BasicGenerator:
 class IO_prompt(BasicGenerator):
     def __init__(self, args):
         super().__init__(args)
-        self.io_prompt = """
-        Q: What state is home to the university that is represented in sports by George Washington Colonials men’s basketball?
-        A: Washington, D.C.
-        
-        Q: Who lists Pramatha Chaudhuri as an influence and wrote Jana Gana Mana?
-        A: Bharoto Bhagyo Bidhata.
-        
-        Q: Who was the artist nominated for an award for You Drive Me Crazy?
-        A: Jason Allen Alexander.
-        
-        Q: What person born in Siegen influenced the work of Vincent Van Gogh?
-        A: Peter Paul Rubens.
-        
-        Q: What is the country close to Russia where Mikheil Saakashvii holds a government position?
-        A: Georgia.
-        
-        Q: What drug did the actor who portrayed the character Urethane Wheels Guy overdosed on?
-        A: Heroin.
-        """
+        self.io_prompt = io_prompt
     def inference(self, question, topic_entity=None, max_length=256):
         # prompt
         prompt = self.io_prompt + "\nQ: " + question + "\nA: "
@@ -75,25 +60,7 @@ class IO_prompt(BasicGenerator):
 class CoT_prompt(BasicGenerator):
     def __init__(self, args):
         super().__init__(args)
-        self.cot_prompt = """
-        Q: What state is home to the university that is represented in sports by George Washington Colonials men’s basketball?
-        A: First, the education institution has a sports team named George Washington Colonials men’s basketball in is George Washington University, Second, George Washington University is in Washington D.C. The answer is Washington, D.C.
-        
-        Q: Who lists Pramatha Chaudhuri as an influence and wrote Jana Gana Mana?
-        A: First, Bharoto Bhagyo Bidhata wrote Jana Gana Mana. Second, Bharoto Bhagyo Bidhata lists Pramatha Chaudhuri as an influence. The answer is Bharoto Bhagyo Bidhata.
-        
-        Q: Who was the artist nominated for an award for You Drive Me Crazy?
-        A: First, the artist nominated for an award for You Drive Me Crazy is Britney Spears. The answer is Jason Allen Alexander.
-        
-        Q: What person born in Siegen influenced the work of Vincent Van Gogh?
-        A: First, Peter Paul Rubens, Claude Monet and etc. influenced the work of Vincent Van Gogh. Second, Peter Paul Rubens born in Siegen. The answer is Peter Paul Rubens.
-        
-        Q: What is the country close to Russia where Mikheil Saakashvii holds a government position?
-        A: First, China, Norway, Finland, Estonia and Georgia is close to Russia. Second, Mikheil Saakashvii holds a government position at Georgia. The answer is Georgia.
-        
-        Q: What drug did the actor who portrayed the character Urethane Wheels Guy overdosed on?
-        A: First, Mitchell Lee Hedberg portrayed character Urethane Wheels Guy. Second, Mitchell Lee Hedberg overdose Heroin. The answer is Heroin.
-        """
+        self.cot_prompt = cot_prompt
         
     def inference(self, question, topic_entity=None, max_length=256):
         prompt = self.cot_prompt + "\nQ: " + question + "\nA: "
@@ -108,90 +75,186 @@ class ToG(BasicGenerator):
         self.generate_max_length = args.generate_max_length
         self.N = args.beamsearch_width
         self.D_max = args.beamsearch_depth
+        self.knowledge_base = args.knowledge_base
     
-    def initializer(self, args, question, N):
+    def initializer(self, question, topic_entity, N):
         # extract top-N topic entites
         # convert entities to wikidata ids. 
-        prompt = f"""Please extract up to {N} topic entities (separated by semicolon) in question.\n
-        question: {question}"""
-        extracted_topic_entities = self.generate(prompt, self.generate_max_length, exploration_temperature)
-        extracted_topic_entities = "Canberra; Australia; majority party"
-        extracted_topic_entities = [entity.strip() for entity in extracted_topic_entities.split(';')]
-        if args.knowledge_base == "wikidata":
-            retriever = WikidataRetriever()
-        elif args.knowledge_base == "freebase":
-            NotImplementedError
+        if topic_entity:
+            self.topic_entites = [{'id': entity_id, 'name': name} for entity_id, name in topic_entity.items()]
             
-        self.topic_entites = retriever.get_id(extracted_topic_entities)
-        print(self.topic_entites)
+        llm_topic_entity = []
+        # prompt = f"""Please extract up to {N} topic entities (separated by semicolon) in question.\n
+        # question: {question}"""
+        # extracted_topic_entities = self.generate(prompt, self.generate_max_length, exploration_temperature)
+        # extracted_topic_entities = [entity.strip() for entity in extracted_topic_entities.split(';')]
+        
+        # if self.knowledge_base  == "wikidata":
+        #     retriever = WikidataRetriever()
+        # elif self.knowledge_base  == "freebase":
+        #     NotImplementedError
+        # #llm_topic_entity = retriever.get_id(extracted_topic_entities)
+        # if llm_topic_entity is not None:
+        #     intersection_set = set(llm_topic_entity).intersection(set(prepared_topic_entity))
+        #     self.topic_entites = list(intersection_set)
+        # else: 
+        #     self.topic_entites = prepared_topic_entity
+            
+        # self.topic_entites = retriever.get_id(self.topic_entites)
+        
         return self.topic_entites
     
-    def prune(question, set, type):
+    # util function from tog github code 
+    def get_entity_with_score(string, entity_candidates):
+        scores = re.findall(r'\d+\.\d+', string)
+        scores = [float(number) for number in scores]
+        if len(scores) == len(entity_candidates):
+            return scores
+        else:
+            print("All entities are created equal.")
+            return [1/len(entity_candidates)] * len(entity_candidates)
+    
+    def entity_scoring_by_llm(self, question, entity_candidate_set):
+        relation = '' # 구현 필요: entity_candidate_set에서 대응하는 relation 찾아서 리턴
+        prompt = score_entity_candidates_prompt_wiki.format(question, relation) + "; ".join(entity_candidate_set) + '\nScore: '
+        llm_result = self.generate(prompt, self.generate_max_length, exploration_temperature)
+        print("llm entity scoring result: ", llm_result)
+        pruned_entities_scores = self.get_entity_with_score(llm_result, entity_candidate_set)
+        pruned_entities = [float(x) * score for x in pruned_entities_scores], # entity_candidates_set[], entity_candidates_id
+        print("pruned_entities: ", pruned_entities)
+        entity_with_score = []
+        return entity_with_score
+        
+        
+    def entity_prune(self, question, set):
+        entity_candidates_set = set
+        print("entity_candidates_set: ", entity_candidates_set)
+        entity_candidates_with_score = self.entity_scoring_by_llm(question, entity_candidates_set)
+        
+        pruned_entities = []
+    
+    # code from tog
+    def get_pruned_relations(self, string, relations):
+        relation_dict = {rel['name']: rel['id'] for rel in relations}
+        pattern = r"{\s*(?P<relation>[^()]+)\s+\(Score:\s+(?P<score>[0-9.]+)\)}"
+        relations=[]
+        for match in re.finditer(pattern, string):
+            relation = match.group("relation").strip()
+            score = match.group("score")
+            if not relation or not score:
+                return "output uncompleted.."
+            try:
+                score = float(score)
+            except ValueError:
+                return "Invalid score"
+            if relation:
+                relation_id = relation_dict[relation]
+                relations.append({'id': relation_id, 'name': relation, 'score': score})
+        if not relations:
+            return "No relations found"
+        return relations
+
+    
+    def relation_pruning_by_llm(self, question, entity, relations):
+        prompt = extract_relation_prompt_wiki % (self.N, self.N)+question+'\nTopic Entity: '+entity+ '\nRelations:\n'+'\n'.join([f"{i}. {item['name']}" for i, item in enumerate(relations, start=1)])+'\nA:'
+        # print("prompt: ", prompt)
+        llm_result = self.generate(prompt, self.generate_max_length, exploration_temperature)
+        print("llm result: ", llm_result)
+        pruned_relations = self.get_pruned_relations(llm_result, relations)
+        print("pruned_relations: ", pruned_relations)
+        # add relation id 
+        return pruned_relations
+        
+        
+    def relation_prune(self, question, set):
+        relation_candidates_set = set
+        print("---------relation_prune function--------")
+        # print("relation_candidates_set: ", relation_candidates_set)
+        for elem in relation_candidates_set:
+            entity = elem['entity']
+            entity_name = entity['name']
+            relations = elem['relations']
+            pruned_relation = self.relation_pruning_by_llm(question, entity_name, relations)
+            
+        
+    def prune(self, question, set, type):
         result = []
         
         if type == 'entity':
-            result = []
+            result = self.entity_prune(question, set)
         elif type == 'relation':
-            result = []
+            result = self.relation_prune(question, set)
         else:
             NotImplementedError
 
         return result
     
-    def retriever(retriever_name, question, set, type, reasoning_path):
+    def retriever(self, retriever_name, question, set, type):
         retrieve = []
         if retriever_name == "wikidata":
             retriever = WikidataRetriever()
             if type == 'entity':
-                retrieve = retriever.entity_set_retriever(question, set, reasoning_path)
+                print("\n-------entity retriever start-------\n")
+                retrieve = retriever.entity_set_retriever(question, set)
+                print("\n-------entity retriever end-------\n")
             elif type == 'relation':
-                retrieve = retriever.relation__set_retriever(question, set, reasoning_path)
+                print("\n-------relation retriever start-------\n")
+                retrieve = retriever.relation_set_retriever(set)
+                print("\n-------relation retriever end-------\n")
             else:
                 NotImplementedError
         elif retriever_name == "freebase":
             NotImplementedError
         return retrieve
     
+    def extract_answer(text):
+        start_index = text.find("{")
+        end_index = text.find("}")
+        if start_index != -1 and end_index != -1:
+            result = text[start_index+1:end_index].strip()
+        else:
+            result = ""
+        if result.lower().strip().replace(" ","")=="yes": return True
+        else: return False
+    
     def reasoning(self, question, reasoning_path):
-        prompt = """Please answer the question using Topic Entity, Relations Chains and their Candidate Entities that contribute to the question, 
-        you are asked to answer whether it’s sufficient for you to answer the question with these triples and your knowledge (Yes or No)."""
-        prompt += "\nin context few shot"
-        prompt += "\nQ: "+ question
+        prompt = prompt_evaluate_wiki + question
         explored_relation_chains = "" # reasoning path
-        prompt += "\nTopic Entity, with relations chains, and their candidate entities: " + explored_relation_chains
-        prompt += "\nA:"
+        # chain_prompt = '\n'.join([', '.join([str(x) for x in chain]) for sublist in cluster_chain_of_entities for chain in sublist])
+        prompt += "\nKnowledge Triplets: " + explored_relation_chains + 'A: '
         answer = self.generate(prompt, self.generate_max_length, reasoning_temperature)
-        
-        # extract answer???
-        
-        return False
+        result = self.extract_answer(answer)
+        return result
     
     def final_ans_generator(self, question, reasoning_path):
-        prompt = """Given a question and the associated retrieved knowledge graph triples (entity, relation, entity), 
-        you are asked to answer the question with these triples and your own knowledge."""
-        prompt += """\n in context few shot"""
-        prompt += "\nQ: " + question
+        prompt = answer_prompt_wiki + question
         # make knowledge triples 
         knowledge_triple = []
-        prompt += "\nKnowledge triples: " 
-        prompt += "\nA: " 
+        explored_relation_chains = "" # reasoning path
+        # chain_prompt = '\n'.join([', '.join([str(x) for x in chain]) for sublist in cluster_chain_of_entities for chain in sublist])
+        prompt += "\nKnowledge Triplets: " + explored_relation_chains + 'A: '
         answer = self.generate(prompt, self.generate_max_length, reasoning_temperature)
         return answer
     
-    def inference(self, args, question, topic_entity):
+    def inference(self, question, topic_entity):
         text = ""
-        E = self.initializer(question, self.N)
+        E = self.initializer(question, topic_entity, self.N)
+        print("quesiton: ", question)
+        print("Topic entity: ", E)
         reasoning_path = []
         depth= 0
         while depth <= self.D_max:
-            R_cand = self.retriever(args.knowledge_base, question, E, "relation", reasoning_path)
+            R_cand = self.retriever(self.knowledge_base, question, E, "relation")
+            print("R_cand: ", R_cand)
             R = self.prune(question, R_cand, "relation")
-            E_cand = self.retriever(args.knowledge_base, question, R, "entity", reasoning_path)
-            E = self.prune(question, E_cand, "entity")
-            if self.reasoning(question, reasoning_path):
-                break
+            E_cand = self.retriever(self.knowledge_base, question, R, "entity")
+            # E, top_n_triples = self.prune(question, E_cand, "entity")
+            # reasoning_path.append(top_n_triples)
+            # if self.reasoning(question, reasoning_path):
+            #     break
             
-            depth += 1
-        answer = self.final_ans_generator(question, reasoning_path)
+        #     depth += 1
+        # answer = self.final_ans_generator(question, reasoning_path)
+        answer = ''
         return answer
             
