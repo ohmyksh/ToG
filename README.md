@@ -5,7 +5,7 @@
 ## Implementation Goals
 The primary objective is to implement the ToG Method and replicate the experiments detailed in the paper.
 
-<img src="ToG-Module.jpg" alt="My Module Design for Implementation" width="300">
+<img src="ToG-Module.jpg" alt="My Module Design for Implementation" width="1000">
 
 ## Implementation Details
 ### Dataset
