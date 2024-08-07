@@ -1,8 +1,11 @@
 # Paper Implementation
-### Think-on-Graph: Deep and Responsible Reasoning of Large Language Model on Knowledge Graph [paper](https://arxiv.org/pdf/2307.07697)
+* Think-on-Graph: Deep and Responsible Reasoning of Large Language Model on Knowledge Graph (ICLR 2024)
+Paper: [link](https://arxiv.org/pdf/2307.07697)
 
 ## Implementation Goals
 The primary objective is to implement the ToG Method and replicate the experiments detailed in the paper.
+
+![My Module Design for Implementation](ToG-Module.jpg)
 
 ## Implementation Details
 ### Dataset
