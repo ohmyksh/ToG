@@ -1,9 +1,11 @@
 # Paper Implementation
 * Think-on-Graph: Deep and Responsible Reasoning of Large Language Model on Knowledge Graph (ICLR 2024)  
 - **Paper**: [link](https://arxiv.org/pdf/2307.07697)
-
-## Overview
 The primary objective is to implement the ToG Method and replicate the experiments detailed in the paper.
+
+## Pseudocode
+<img src="pseudocode-tog.png" alt="My Pseudocode for Implementation" width="600">
+This pseudocode is implemented using the modules described below:
 
 ## Modules
 <img src="ToG-Module.jpg" alt="My Module Design for Implementation" width="800">
