@@ -1,32 +1,22 @@
-import os
+# from transformers import AutoTokenizer, AutoModelForCausalLM
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1, 2, 3'
-#print(os.environ['CUDA_VISIBLE_DEVICES'])
+# # model load
+# model_path = "meta-llama/Llama-2-70b-chat-hf"
+# tokenizer = AutoTokenizer.from_pretrained(model_path)
+# model = AutoModelForCausalLM.from_pretrained(model_path)
 
-from transformers import AutoTokenizer
-import transformers
-import torch
+# # model save
+# save_dir = "/home/shkim/ToG-implement/llama_model"
+# tokenizer.save_pretrained(save_dir)
+# model.save_pretrained(save_dir)
 
-model = "/home/jylee/.cache/huggingface/hub/models--meta-llama--Llama-2-13b-hf/snapshots/5c31dfb671ce7cfe2d7bb7c04375e44c55e815b1"
-
-tokenizer = AutoTokenizer.from_pretrained(model)
-pipeline = transformers.pipeline(
-    "text-generation",
-    model=model,
-    torch_dtype=torch.float16,
-    device_map="auto",
-)
-
-sentence = 'I liked "Breaking Bad" and "Band of Brothers". Do you have any recommendations of other shows I might like?\n',
-
-sequences = pipeline(
-    sentence,
-    do_sample=True,
-    top_k=10,
-    num_return_sequences=1,
-    eos_token_id=tokenizer.eos_token_id,
-    max_length=200,
-)
-
-for seq in sequences:
-    print(f"Result: {seq['generated_text']}")
+from llama_cpp import Llama
+llm = Llama(
+    model_path='/home/shkim/ToG-implement/llama_model/Llama-2-70B-chat-hf-Q8_0.gguf', 
+    n_gpu_layers=30, 
+    n_ctx=3584, 
+    n_batch=521, 
+    verbose=True)
+# adjust n_gpu_layers as per your GPU and model
+output = llm("Q: Name the planets in the solar system? A: ", max_tokens=32, stop=["Q:", "\n"], echo=True)
+print(output)

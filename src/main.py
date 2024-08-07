@@ -75,10 +75,13 @@ def main():
     for i in tqdm(range(len(data))):
         batch = data[i]
         # measure total time
-        # inference_start_time = time.perf_counter()
+        inference_start_time = time.perf_counter()
         pred = model.inference(batch["question"], batch[topic_entity])
-        # inference_end_time = time.perf_counter()
-        #total_time = (inference_end_time - inference_start_time)
+        inference_end_time = time.perf_counter()
+        total_time = (inference_end_time - inference_start_time)
+        print("-----------------------\n")
+        print("total time: ", total_time)
+        print("-----------------------\n")
         pred = pred.strip()
         ret = {
             "question": batch["question"],

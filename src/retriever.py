@@ -85,18 +85,31 @@ class WikidataRetriever(SPARQLQueryDispatcher):
         # results.append(results_1)
         # results.append(results_2)
         
+        if results is None:
+            return None
+        
+        tail_entities = []
         for result in results:
-            tail_entity = result["tailEntity"]["value"]
-            tail_entity_label = result["tailEntityLabel"]["value"]
-            print(f"{tail_entity_label} (URI: {tail_entity})")
+            tail_entity_uri = result['tailEntity']['value']
+            tail_entity_id = tail_entity_uri.split('/')[-1]
+            tail_entity_label = result['tailEntityLabel']['value']
+            tail_entities.append({'id': tail_entity_id, 'name': tail_entity_label})
+        return tail_entities
     
     def entity_set_retriever(self, candidate_relation_set):
+        candidate_relation_tail_set = []
         for entity_relation_pairs in candidate_relation_set:
             entity = entity_relation_pairs['entity']
             for relation in entity_relation_pairs['relations']:
-                relation_id = relation['id']
-                self.entity_retrieval(entity, relation_id)
-
+                tail_entities = self.entity_retrieval(entity['id'], relation['id'])
+                elem = {
+                        'entity': entity,
+                        'relation':relation,
+                        'tail_entities': tail_entities
+                }
+                candidate_relation_tail_set.append(elem)
+        return candidate_relation_tail_set
+    
     def relation_retriever(self, mid):
         relations = []
         # outcoming relation 
@@ -136,6 +149,8 @@ class WikidataRetriever(SPARQLQueryDispatcher):
             relation_label = self.get_property_label(relation)
             # print({"id": relation_id, "label": relation_label})
             if relation_label != "Wikidata property example":
+                # to match format in wikidata. 
+                # relation_label_format = "wiki.relation." + relation_label.replace(" ", "_")
                 relation_info = {'id': relation_id, 'name': relation_label}
                 if (relation_id, relation_label) not in unique_relations:
                     unique_relations.add((relation_id, relation_label))
@@ -146,8 +161,8 @@ class WikidataRetriever(SPARQLQueryDispatcher):
         all_relations = []
         for entity in entity_set:
             # print(f"\n--- relation_retriever for {entity} ---\n")
-            print("--------relation_set_retriever function_________")
-            print("entity id: ", entity['id'], )
+            # print("--------relation_set_retriever function_________")
+            # print("entity id: ", entity['id'], )
             relations = self.relation_retriever(entity['id'])
             all_relations.append({"entity": entity, "relations": relations})
         return all_relations

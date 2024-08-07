@@ -1,0 +1,11 @@
+{
+    "model_name_or_path": "meta-llama/Llama-2-13b-chat-hf",
+    "method": "CoT",
+    "dataset": "QALD-10",
+    "sample": 2,
+    "beamsearch_width": 3,
+    "beamsearch_depth": 3,
+    "generate_max_length": 256,
+    "output_dir": "../result/QALD_cot_prompt",
+    "knowledge_base": "wikidata"
+}

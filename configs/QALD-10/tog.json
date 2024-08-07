@@ -1,0 +1,11 @@
+{
+    "model_name_or_path": "meta-llama/Llama-2-70b-chat-hf",
+    "method": "ToG",
+    "dataset": "QALD-10",
+    "sample": 1,
+    "beamsearch_width": 3,
+    "beamsearch_depth": 3,
+    "generate_max_length": 256,
+    "output_dir": "../result/QALD_ToG",
+    "knowledge_base": "wikidata"
+}
