@@ -68,15 +68,15 @@ If the response is "Yes," the Final Answer Generator is executed. If "No," the E
 * Metric: Exact Match Accuracy (Hits@1)
 * Model: Llama2-70B-hf [(Hugging Face)](https://huggingface.co/meta-llama/Llama-2-70b-hf)
 * Knowledge Graph: Wikidata [(link)](https://www.wikidata.org/wiki/Wikidata:REST_API)
-* Hyperparameters
+* Hyperparameters  
   The implementation follows the hyperparameters defined in the paper:
-- **Temperature**:
-  - 0.4 for exploration
-  - 0 for reasoning
-- **Max Token Length for Generation**:
-  - 256 tokens
-- **Beam Search Parameters**:
-  - Width (N): 3
-  - Maximum Depth (Dmax): 3
-- **Few Shot Number**:
-  - 5 examples
+  - **Temperature**:
+    - 0.4 for exploration
+    - 0 for reasoning
+  - **Max Token Length for Generation**:
+    - 256 tokens
+  - **Beam Search Parameters**:
+    - Width (N): 3
+    - Maximum Depth (Dmax): 3
+  - **Few Shot Number**:
+    - 5 examples
