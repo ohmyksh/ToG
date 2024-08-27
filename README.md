@@ -3,7 +3,10 @@
 📑 Paper: [link](https://arxiv.org/pdf/2307.07697)  
 💾 Original Repo: [link](https://github.com/IDEA-FinAI/ToG)  
 
-The primary objective is to implement the ToG Method and replicate the experiments detailed in the paper.
+The following are the implementations I developed after reading and studying the research paper:
+
+## Summary
+The paper introduces the Think-on-Graph (ToG) framework, which uses LLMs as agents to enhance KG reasoning for better decision-making. To address hallucination issues in deep and responsible reasoning, the authors propose a new paradigm where LLMs and KGs complement each other in each step of graph reasoning. Given an input question, ToG first identifies initial entities. Then iteratively calls the LLM to retrieve relevant triples from KGs through exploration and reasoning until adequate information through the top-N reasoning paths in beam search is gathered to answer the question or the predefined maximum search depth is reached.  
 
 ## Pseudocode
 <img src="pseudocode-tog.png" alt="My Pseudocode for Implementation" width="600">
