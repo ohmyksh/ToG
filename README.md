@@ -1,9 +1,9 @@
 # Paper Implementation
 ## 💭Think-on-Graph: Deep and Responsible Reasoning of Large Language Model on Knowledge Graph (ICLR 2024)   
-📑 Paper: [link](https://arxiv.org/pdf/2307.07697)  
-💾 Original Repo: [link](https://github.com/IDEA-FinAI/ToG)  
+📑  Paper: [(link)](https://arxiv.org/pdf/2307.07697)  
+💾  Original Repo: [(link)](https://github.com/IDEA-FinAI/ToG)  
 
-## Contents
+## 🌱 Contents
 1. [Paper summary](#Summary)
 2. [Pseudocode for implement](#Pseudocode)
 3. [Module design](#Modules)
@@ -11,14 +11,14 @@
 5. [Discussion and opportunities for improvement](#Discussion-and-Opportunities-for-improvement)
 
 
-## Summary
+## 1. Summary
 The paper introduces the Think-on-Graph (ToG) framework, which uses LLMs as agents to enhance KG reasoning for better decision-making. To address hallucination issues in deep and responsible reasoning, the authors propose a new paradigm where LLMs and KGs complement each other in each step of graph reasoning. Given an input question, ToG first identifies initial entities. Then iteratively calls the LLM to retrieve relevant triples from KGs through exploration and reasoning until adequate information through the top-N reasoning paths in beam search is gathered to answer the question or the predefined maximum search depth is reached.  
 
-## Pseudocode
+## 2. Pseudocode
 <img src="pseudocode-tog.png" alt="My Pseudocode for Implementation" width="600">
 This pseudocode is implemented using the modules described below:
 
-## Modules
+## 3. Modules
 <img src="ToG-Module.jpg" alt="My Module Design for Implementation" width="800">
 
 ### 1. Top Module
@@ -60,7 +60,8 @@ If the response is "Yes," the Final Answer Generator is executed. If "No," the E
 - **Output**: answer  
 
 
-## Implementation Details
+
+## 4. Implementation Details
 * Dataset: QALD-10 (English Version)
 * Metric: Exact Match Accuracy (Hits@1)
 * Model: Llama2-70B-hf [(Hugging Face)](https://huggingface.co/meta-llama/Llama-2-70b-hf)
@@ -79,4 +80,6 @@ If the response is "Yes," the Final Answer Generator is executed. If "No," the E
     - 5 examples
 
    
-  ## Discussion and Opportunities for improvement
+## 5. Discussion and Opportunities for improvement  
+I attempted to implement the model based solely on the details provided in the paper. However, during the process, I encountered some gaps in the explanation. To address these, I cross-referenced the paper with the original code. I have also documented my discussions and potential improvements identified during this process.
+
