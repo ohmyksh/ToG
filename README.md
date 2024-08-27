@@ -1,7 +1,7 @@
 # Paper Implementation
-## 💭Think-on-Graph:Deep and Responsible Reasoning of Large Language Model on Knowledge Graph (ICLR 2024)   
-Paper: [link](https://arxiv.org/pdf/2307.07697)  
-Original Repo: [link](https://github.com/IDEA-FinAI/ToG)  
+## 💭Think-on-Graph: Deep and Responsible Reasoning of Large Language Model on Knowledge Graph (ICLR 2024)   
+📑 Paper: [link](https://arxiv.org/pdf/2307.07697)  
+💾 Original Repo: [link](https://github.com/IDEA-FinAI/ToG)  
 
 The primary objective is to implement the ToG Method and replicate the experiments detailed in the paper.
 
