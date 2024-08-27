@@ -64,16 +64,12 @@ If the response is "Yes," the Final Answer Generator is executed. If "No," the E
 
 
 ## Implementation Details
-#### Dataset
-- **KBQA**: QALD-10 (English Version)
-#### Metric
-- Exact Match Accuracy (Hits@1)
-#### Model
-- Llama2-70B-hf [(Hugging Face)](https://huggingface.co/meta-llama/Llama-2-70b-hf)
-#### Knowledge Graph
-- Wikidata [(link)](https://www.wikidata.org/wiki/Wikidata:REST_API)
-#### Hyperparameters
-The implementation follows the hyperparameters defined in the paper:
+* Dataset: QALD-10 (English Version)
+* Metric: Exact Match Accuracy (Hits@1)
+* Model: Llama2-70B-hf [(Hugging Face)](https://huggingface.co/meta-llama/Llama-2-70b-hf)
+* Knowledge Graph: Wikidata [(link)](https://www.wikidata.org/wiki/Wikidata:REST_API)
+* Hyperparameters
+  The implementation follows the hyperparameters defined in the paper:
 - **Temperature**:
   - 0.4 for exploration
   - 0 for reasoning
