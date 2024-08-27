@@ -70,13 +70,13 @@ If the response is "Yes," the Final Answer Generator is executed. If "No," the E
 * Knowledge Graph: Wikidata [(link)](https://www.wikidata.org/wiki/Wikidata:REST_API)
 * Hyperparameters  
   The implementation follows the hyperparameters defined in the paper:
-  - **Temperature**:
+  - **Temperature**
     - 0.4 for exploration
     - 0 for reasoning
-  - **Max Token Length for Generation**:
+  - **Max Token Length for Generation**
     - 256 tokens
-  - **Beam Search Parameters**:
+  - **Beam Search Parameters**
     - Width (N): 3
     - Maximum Depth (Dmax): 3
-  - **Few Shot Number**:
+  - **Few Shot Number**
     - 5 examples
