@@ -78,7 +78,4 @@ If the response is "Yes," the Final Answer Generator is executed. If "No," the E
   - **Few Shot Number**
     - 5 examples
 
-   
-## Discussion and Opportunities for improvement  
-I attempted to implement the model based solely on the details provided in the paper. However, during the process, I encountered some gaps in the explanation. To address these, I cross-referenced the paper with the original code. I have also documented my discussions and potential improvements identified during this process.
 
